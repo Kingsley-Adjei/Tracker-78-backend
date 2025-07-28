@@ -20,19 +20,14 @@ public class AppwriteAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
+        String userId = appwriteTokenService.verifyTokenAndGetUserId(authHeader);
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            String userId = appwriteTokenService.verifyTokenAndGetUserId(token);
-
-            if (userId != null) {
-                filterChain.doFilter(request, response);
-                return;
-            }
+        if (authHeader != null && userId != null) {
+            filterChain.doFilter(request, response);
+        } else {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\": \"Invalid or missing Appwrite token\"}");
         }
-
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json");
-        response.getWriter().write("{\"error\": \"Invalid or missing Authorization header\"}");
     }
 }
